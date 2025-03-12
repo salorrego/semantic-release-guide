@@ -1,0 +1,18 @@
+{
+  "name": "semantic-release-guide",
+  "version": "1.0.0",
+  "description": "Semantic release guide using github and github actions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "semantic-release",
+    "semantic",
+    "release",
+    "github",
+    "actions"
+  ],
+  "author": "salorrego",
+  "license": "MIT"
+}
