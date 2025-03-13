@@ -85,28 +85,16 @@ For our case we will be ussing [commitizen](https://www.npmjs.com/package/commit
 
 ### Plugins
 
-We will be using different plugins for our configuration since each one of them are gonna be executing something different.
+We will be using semantic-release-github plugin for our configuration, but there are more available, feel free to take a look at them at [Plugins](https://semantic-release.gitbook.io/semantic-release/extending/plugins-list). Keep inmind that they may require additional configuration for your github branch protection rules.
 
 Install next plugins for semantic-release:
 
 ```bash
-npm install --save-dev @semantic-release/changelog @semantic-release/git @semantic-release/github @semantic-release/release-notes-generator
+npm install --save-dev @semantic-release/github
 ```
 
-- @semantic-release/changelog
-
-  > emantic-release plugin to generate a `CHANGELOG.md` based on the commits pushed to the specified branch.
-
-- @semantic-release/git
-
-  > emantic-release plugin to verify the access to the remote Git repository, the commit message format and the assets option configuration.
-
 - @semantic-release/github
-
   > semantic-release plugin to publish a GitHub release and comment on released Pull Requests/Issues.
-
-- @semantic-release/release-notes-generator
-  > semantic-release plugin to generate changelog content with conventional-changelog
 
 ### Release Configuration File
 
@@ -117,16 +105,7 @@ Content for `.releaserc.json`:
 ```
 {
   "branches": ["main"],
-  "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
-    "@semantic-release/changelog",
-    "@semantic-release/github",
-    ["@semantic-release/git", {
-      "assets": ["CHANGELOG.md", "package.json"],
-      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
-    }]
-  ]
+  "plugins": ["@semantic-release/commit-analyzer", "@semantic-release/github"]
 }
 ```
 
