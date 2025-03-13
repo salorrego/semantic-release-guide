@@ -190,7 +190,7 @@ jobs:
       # Check if commit message is a conventional commit message
       - name: Commit Lint
         # This will check your last commit and return an error if invalid or a positive output if valid.
-        run: npx commitlint --from HEAD~1 --to HEAD --verbose
+        run: npx commitlint --from HEAD~0 --to HEAD --verbose
 
       # Run build of the app (as this step you can add audit, linter or any other step you want to check)
       - name: Run build
@@ -266,8 +266,12 @@ Github configuration is required for you to be able to run semantic-release, it 
 7. Within Rules enable `Require a pull request before merging` and set `Require approvals` to at least 1 and set `Allowed merge methods` to only `Squash` (with this you make sure only one commit at a time can be pushed to main branch)
    ![alt text](images/require-pr.png "Require Pull Request before merging")
 8. Enable `Require status checks to pass` and select `build-and-test` from Github actions
-   ![alt text](images/add-status-check.png "Add checks")
+   ![alt text](images/add-status-github-actions-check.png "Add checks")
 9. Click on `Create`
    ![alt text](images/create-ruleset.png "Create ruleset")
+10. Go to Section Actions on the menu at the left and select `General`
+    ![alt text](images/actions-general.png "Actions -> General")
+11. In the section `Workflow permissions` be sure to enable `Read and write permissions` as this is required to be able to generate releases and push to main branch changelogs.
+    ![alt text](images/actions-general-workflow-permissions.png "Actions -> General -> Workflow permissions")
 
 Now you should be all set up to generate automatically your releases!
