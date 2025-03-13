@@ -35,7 +35,7 @@ jobs:
       # Check if commit message is a conventional commit message
       - name: Commit Lint
         # This will check your last commit and return an error if invalid or a positive output if valid.
-        run: npx commitlint --from HEAD~1 --to HEAD --verbose
+        run: npx commitlint --from HEAD~0 --to HEAD --verbose
 
       # Run build of the app (as this step you can add audit, linter or any other step you want to check)
       - name: Run build
