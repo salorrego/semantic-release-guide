@@ -185,7 +185,8 @@ jobs:
         with:
           path: node_modules
           key: ${{ runner.os }}-node_modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-node_modules-
+          restore-keys: |
+            ${{ runner.os }}-node_modules-
 
       # Check if commit message is a conventional commit message
       - name: Commit Lint
@@ -235,11 +236,13 @@ jobs:
         with:
           node-version: "22.x"
 
-      - name: Restore node_modules cache
+      - name: Restore Cache node_modules
         uses: actions/cache@v3
         with:
+          path: node_modules
           key: ${{ runner.os }}-node_modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-node_modules-
+          restore-keys: |
+            ${{ runner.os }}-node_modules-
 
       - name: Run Semantic Release
         env:
