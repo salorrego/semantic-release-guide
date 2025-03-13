@@ -1,0 +1,93 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - "**" # Run for all branches
+
+jobs:
+  build-and-test:
+    # Replace ubuntu latest for an specific version so you can reproduce error if required
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Se tup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          ## Use latest Node.js 22
+          node-version: "22.x"
+
+      - name: Install dependencies
+        # Clean Install
+        run: npm ci
+
+      # Cache node_modules to use install only once
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node_modules-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node_modules-
+
+      # Check if commit message is a conventional commit message
+      - name: Commit Lint
+        # This will check your last commit and return an error if invalid or a positive output if valid.
+        run: npx commitlint --from HEAD~1 --to HEAD --verbose
+
+      # Run build of the app (as this step you can add audit, linter or any other step you want to check)
+      - name: Run build
+        run: npm run build
+
+      # Replace with your test coverage command
+      - name: Run Tests with coverage
+        id: tests
+        # If you have another command for your tests run it here
+        run: npm test
+        continue-on-error: false
+
+      # Add one for each folder you require to upload
+      - name: Upload Test Coverage
+        # Run even if tests fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test Coverage
+          path: coverage
+
+  release:
+    # Run only for main branch push
+    if: github.ref == 'refs/heads/main'
+    needs: build-and-test
+    # Replace ubuntu latest for an specific version so you can reproduce error if required
+    runs-on: ubuntu-latest
+    # Required to generate releases
+    permissions:
+      contents: write
+      issues: write
+      packages: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-node_modules-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node_modules-
+
+      - name: Run Semantic Release
+        env:
+          # this env var is provided by github actions, for other CI you may require to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
