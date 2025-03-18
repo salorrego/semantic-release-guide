@@ -257,3 +257,46 @@ Github configuration is required for you to be able to run semantic-release, it 
     ![alt text](images/actions-general-workflow-permissions.png "Actions -> General -> Workflow permissions")
 
 Now you should be all set up to generate automatically your releases!
+
+## Adding Changelog plugins (optional)
+
+In order to use Changelog plugins you will require the use of a Github Personal Access Token (PAT).
+
+1. To create a PAT go to `Settings`
+2. Then go to `Developer Settings`
+3. Then click on `Personal access tokens`
+4. Select `Fine-grined tokens`
+5. `Generate new token`
+6. Enable as `write-read` Contents and Pull requests.
+
+To use Changelog updates you will need to install next plugins:
+
+```bash
+npm i -D @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git
+```
+
+Then update `.relaserc.json` File to:
+
+```
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    "@semantic-release/github",
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md", "package.json"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ]
+}
+```
+
+And last update your `ci-pipeline.yml` to use your PAT instead og `GITHUB_TOKEN`, to do so,
+
+1. Add a secret to your repo (we used `GH_PAT`)
+2. Update your `ci-pipeline.yml` file replacing `secrets.GITHUB_TOKEN` for `secrets.GH_PAT` (or the secret you created for it).

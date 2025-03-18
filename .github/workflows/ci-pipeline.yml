@@ -92,5 +92,6 @@ jobs:
       - name: Run Semantic Release
         env:
           # this env var is provided by github actions, for other CI you may require to create your own token
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: npx semantic-release
