@@ -70,6 +70,10 @@ jobs:
       issues: write
       packages: write
       pull-requests: write
+    outputs:
+      release_created: ${{ steps.check_release.outputs.release_created }}
+      version: ${{ steps.version.outputs.version }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -93,13 +97,21 @@ jobs:
         env:
           # this env var is provided by github actions, for other CI you may require to create your own token
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
+        run: |
+          npx semantic-release
+          # Capture the output of semantic-release
+          RELEASE_CREATED="$([ $? -eq 0 ] && echo 'true' || echo 'false')"
+          VERSION=$(git tag --sort=-creatordate | head -n 1) #gets the latest tag
+          echo "RELEASE_CREATED=$RELEASE_CREATED" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "::set-output name=release_created::$RELEASE_CREATED"
+          echo "::set-output name=version::$VERSION"
 
   push-docker-to-ecr:
   # Only push when new main release is generated
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.semantic_release.outputs.release_created == 'true'
     needs: release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     permissions:
       id-token: write # Required for OIDC authentication (AWS)
@@ -120,15 +132,6 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Get latest release tag
-        # With this you can get latest tag (generated on prev step)
-        id: get-latest-tag
-        run: |
-          git fetch --tags
-          latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
-          echo "Latest tag: $latest_tag"
-          echo "IMAGE_TAG=$latest_tag" >> $GITHUB_ENV
-
       - name: Get commit SHA
         # you can also use the commit sha as the image to be pushed (only one name is required, but you can use the commit and tag)
         id: get_commit_sha
@@ -142,7 +145,7 @@ jobs:
           # secret AWS_ECR_REPOSITORY is also required as you need to know which registry to push to
           REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          IMAGE_TAG: "${{ needs.release.outputs.version }}"
           COMMIT_TAG: ${{ env.COMMIT_TAG }}
         run: |
           # Build the Docker image using the Dockerfile from the root
