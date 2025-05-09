@@ -94,3 +94,74 @@ jobs:
           # this env var is provided by github actions, for other CI you may require to create your own token
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+  push-docker-to-ecr:
+  # Only push when new main release is generated
+    if: github.ref == 'refs/heads/main'
+    needs: release
+    runs-on: ubuntu-24.04
+
+    permissions:
+      id-token: write # Required for OIDC authentication (AWS)
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Requires to have the AWS_ACCOUNT_ID, AWS_ROLE_NAME and AWS_REGION set up on github as secrets
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.AWS_ROLE_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get latest release tag
+        # With this you can get latest tag (generated on prev step)
+        id: get-latest-tag
+        run: |
+          git fetch --tags
+          latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+          echo "Latest tag: $latest_tag"
+          echo "IMAGE_TAG=$latest_tag" >> $GITHUB_ENV
+
+      - name: Get commit SHA
+        # you can also use the commit sha as the image to be pushed (only one name is required, but you can use the commit and tag)
+        id: get_commit_sha
+        run: |
+          commit_sha=$(git rev-parse --short HEAD)
+          echo "Latest commit SHA: $commit_sha"
+          echo "COMMIT_TAG=$commit_sha" >> $GITHUB_ENV
+
+      - name: Build, Tag, and Push Docker Image
+        env:
+          # secret AWS_ECR_REPOSITORY is also required as you need to know which registry to push to
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          COMMIT_TAG: ${{ env.COMMIT_TAG }}
+        run: |
+          # Build the Docker image using the Dockerfile from the root
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG -t $REGISTRY/$REPOSITORY:$COMMIT_TAG --target prod .
+
+          # Push both the GitHub tag and latest tag
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          docker push $REGISTRY/$REPOSITORY:$COMMIT_TAG
+
+          # Save tag for next workflow
+          echo $IMAGE_TAG > image_tag.txt
+
+      - name: Upload image tag artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image_tag
+          path: image_tag.txt
+          retention-days: 1
+
+      - name: Post-Action Cleanup
+        run: |
+          docker image prune -f  # Optional cleanup
